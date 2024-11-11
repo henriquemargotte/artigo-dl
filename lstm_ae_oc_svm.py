@@ -1,3 +1,10 @@
+import kagglehub
+
+# Download latest version
+path = kagglehub.dataset_download("badcodebuilder/insdn-dataset")
+
+print("Path to dataset files:", path)
+
 import pandas as pd
 
 #sets a seed so the experiments can be reproduced
@@ -5,7 +12,7 @@ import numpy as np
 np.random.seed(42)
 
 # Load the CSV file into a DataFrame
-file_path = '/home/margotte/CoisasDaEscola/IC/artigo_DL/InSDN_DatasetCSV/Normal_data.csv'
+file_path = path + '/InSDN_DatasetCSV/Normal_data.csv'
 data = pd.read_csv(file_path)
 
 # Pre-process the data by removing socket information
@@ -37,7 +44,7 @@ data['Label'] = data['Label'].apply(lambda x: 0 if x == 'Normal' else 1)
 
 
 # Repeat it all for the OVS.csv file
-file_path = '/home/margotte/CoisasDaEscola/IC/artigo_DL/InSDN_DatasetCSV/OVS.csv'
+file_path = path + '/InSDN_DatasetCSV/OVS.csv'
 data_ovs = pd.read_csv(file_path)
 data_ovs = data_ovs.drop(columns=['Src IP', 'Src Port', 'Dst IP', 'Dst Port', 'Flow ID'])
 data_ovs = data_ovs.set_index('Timestamp')
