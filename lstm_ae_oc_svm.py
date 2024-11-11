@@ -80,7 +80,7 @@ train_data = train_data.drop(columns=['Label'])
 
 # The input layer
 train_data = np.expand_dims(train_data, axis=2)
-inputs = Input(shape=(train_data.shape[1], train_data.shape[2]))
+inputs = Input(shape=(train_data.shape[1], 1))
 
 # The encoder layer
 encoded = LSTM(128, activation='tanh', return_sequences=True)(inputs)
