@@ -56,7 +56,7 @@ model.compile(optimizer='adam', loss='mse')
 model.summary()
 
 # Train the model
-epochs = 1#00
+epochs = 100
 learning_rate = 0.0001
 batch_size = 32
 optimizer = Adam(learning_rate=learning_rate)
