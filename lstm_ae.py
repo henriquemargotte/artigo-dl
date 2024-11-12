@@ -87,8 +87,7 @@ test_loss = np.mean(np.abs(test_pred - test_data_values), axis=(1, 2))  # Adjust
 # Add results and calculate performance metrics
 test_data['Loss'] = test_loss
 test_data['Threshold'] = threshold
-test_data['Anomaly'] = test_data['Loss'] > test_data['Threshold']
-test_data['Prediction'] = test_data['Label'] == 1
+test_data['Prediction'] = test_data['Loss'] > test_data['Threshold']
 
 # Display performance metrics
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, confusion_matrix, classification_report, roc_auc_score, roc_curve, precision_recall_curve
