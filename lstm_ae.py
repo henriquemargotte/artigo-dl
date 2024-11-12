@@ -55,7 +55,66 @@ model = Model(inputs=inputs, outputs=output)
 model.compile(optimizer='adam', loss='mse')
 model.summary()
 
-# Train the model
+# Train the model 5 times, saving each result in different archives, calculating the mean of the results at the end and saving in an archive 
+num_runs = 5
+results = {
+    'accuracy': [],
+    'recall': [],
+    'precision': [],
+    'f1_score': [],
+    'roc_auc_score': []
+}
+
+for run in range(num_runs):
+    print(f"Run {run + 1}/{num_runs}")
+    history = model.fit(train_data_values, train_data_values, epochs=epochs, batch_size=batch_size, callbacks=callbacks, validation_split=0.1)
+    
+    # Detect anomalies
+    train_pred = model.predict(train_data_values)
+    train_loss = np.mean(np.abs(train_pred - train_data_values), axis=1)
+    
+    # Calculate anomaly threshold
+    threshold = np.mean(train_loss) + 3 * np.std(train_loss)
+    
+    # Process and predict anomalies in test data
+    test_data_values = np.expand_dims(test_data.drop(columns=['Label']).values, axis=1)
+    test_pred = model.predict(test_data_values)
+    test_loss = np.mean(np.abs(test_pred - test_data_values), axis=(1, 2))
+    
+    # Add results and calculate performance metrics
+    test_data['Loss'] = test_loss
+    test_data['Threshold'] = threshold
+    test_data['Prediction'] = test_data['Loss'] > test_data['Threshold']
+    
+    accuracy = accuracy_score(test_data['Label'], test_data['Prediction'])
+    recall = recall_score(test_data['Label'], test_data['Prediction'])
+    precision = precision_score(test_data['Label'], test_data['Prediction'])
+    f1 = f1_score(test_data['Label'], test_data['Prediction'])
+    roc_auc = roc_auc_score(test_data['Label'], test_data['Prediction'])
+    
+    results['accuracy'].append(accuracy)
+    results['recall'].append(recall)
+    results['precision'].append(precision)
+    results['f1_score'].append(f1)
+    results['roc_auc_score'].append(roc_auc)
+    
+    # Save the performance metrics to a text file for each run
+    with open(f'performance_metrics_run_{run + 1}.txt', 'w') as f:
+        f.write(f'Accuracy: {accuracy}\n')
+        f.write(f'Recall: {recall}\n')
+        f.write(f'Precision: {precision}\n')
+        f.write(f'F1 Score: {f1}\n')
+        f.write(f'Confusion Matrix:\n{confusion_matrix(test_data["Label"], test_data["Prediction"])}\n')
+        f.write(f'Classification Report:\n{classification_report(test_data["Label"], test_data["Prediction"])}\n')
+        f.write(f'ROC AUC Score: {roc_auc}\n')
+
+# Calculate mean of the results
+mean_results = {metric: np.mean(values) for metric, values in results.items()}
+
+# Save the mean performance metrics to a text file
+with open('mean_performance_metrics.txt', 'w') as f:
+    for metric, value in mean_results.items():
+        f.write(f'{metric.capitalize()}: {value}\n')
 epochs = 100
 learning_rate = 0.0001
 batch_size = 32
