@@ -185,6 +185,7 @@ plt.show()
 # Evaluates the model
 from sklearn.metrics import precision_recall_curve
 from keras.optimizers import Adam
+from sklearn.svm import OneClassSVM
 precision, recall, thresholds = precision_recall_curve(test_data['Label'], test_data['Prediction'])
 plt.plot(recall, precision)
 plt.xlabel('Recall')
@@ -193,3 +194,66 @@ plt.show()
 
 # Evaluates the model
 
+# Evaluates the model
+
+# Train One-Class SVM
+oc_svm = OneClassSVM(kernel='rbf', gamma='auto').fit(train_loss.reshape(-1, 1))
+
+# Predict anomalies in the test data
+test_data['OCSVM_Prediction'] = oc_svm.predict(test_loss.reshape(-1, 1))
+test_data['OCSVM_Anomaly'] = test_data['OCSVM_Prediction'] == -1
+
+# Displays the count of each label
+print(test_data['Label'].value_counts())
+print(test_data['OCSVM_Prediction'].value_counts())
+print(test_data['OCSVM_Anomaly'].value_counts())
+
+# Displays the first few rows of the DataFrame
+print(test_data.head(10))
+
+# Evaluates the model
+print('Accuracy:', accuracy_score(test_data['Label'], test_data['OCSVM_Anomaly']))
+print('Recall:', recall_score(test_data['Label'], test_data['OCSVM_Anomaly']))
+print('Precision:', precision_score(test_data['Label'], test_data['OCSVM_Anomaly']))
+print('F1 Score:', f1_score(test_data['Label'], test_data['OCSVM_Anomaly']))
+
+# Evaluates the model
+print(confusion_matrix(test_data['Label'], test_data['OCSVM_Anomaly']))
+
+# Evaluates the model
+print(classification_report(test_data['Label'], test_data['OCSVM_Anomaly']))
+
+# Evaluates the model
+print('ROC AUC Score:', roc_auc_score(test_data['Label'], test_data['OCSVM_Anomaly']))
+
+# Evaluates the model
+fpr, tpr, thresholds = roc_curve(test_data['Label'], test_data['OCSVM_Anomaly'])
+plt.plot(fpr, tpr)
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.show()
+
+# Evaluates the model
+precision, recall, thresholds = precision_recall_curve(test_data['Label'], test_data['OCSVM_Anomaly'])
+plt.plot(recall, precision)
+plt.xlabel('Recall')
+plt.ylabel('Precision')
+plt.show()
+
+# Traceback (most recent call last):
+#   File "lstm_ae_oc_svm.py", line 137, in <module>
+#     test_loss = np.mean(np.abs(test_pred - test_data.drop(columns=['Label'])), axis=1)
+#   File "/home2/hm19/.local/lib/python3.8/site-packages/pandas/core/generic.py", line 2016, in __array_ufunc__
+#     return arraylike.array_ufunc(self, ufunc, method, *inputs, **kwargs)
+#   File "/home2/hm19/.local/lib/python3.8/site-packages/pandas/core/arraylike.py", line 273, in array_ufunc
+#     result = maybe_dispatch_ufunc_to_dunder_op(self, ufunc, method, *inputs, **kwargs)
+#   File "pandas/_libs/ops_dispatch.pyx", line 113, in pandas._libs.ops_dispatch.maybe_dispatch_ufunc_to_dunder_op
+#   File "/home2/hm19/.local/lib/python3.8/site-packages/pandas/core/ops/common.py", line 81, in new_method
+#     return method(self, other)
+#   File "/home2/hm19/.local/lib/python3.8/site-packages/pandas/core/arraylike.py", line 198, in __rsub__
+#     return self._arith_method(other, roperator.rsub)
+#   File "/home2/hm19/.local/lib/python3.8/site-packages/pandas/core/frame.py", line 7455, in _arith_method
+#     self, other = ops.align_method_FRAME(self, other, axis, flex=True, level=None)
+#   File "/home2/hm19/.local/lib/python3.8/site-packages/pandas/core/ops/__init__.py", line 294, in align_method_FRAME
+#     raise ValueError(
+# ValueError: Unable to coerce to Series/DataFrame, dimension must be <= 2: (27557, 77, 1)
