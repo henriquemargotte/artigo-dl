@@ -47,28 +47,30 @@ test_data = pd.concat([test_data, data_ovs])
 train_data_values = np.expand_dims(train_data.drop(columns=['Label']).values, axis=1)
 test_data_values = np.expand_dims(test_data.drop(columns=['Label']).values, axis=1)
 
-# Define model architecture (same across runs)
-inputs = Input(shape=(1, train_data_values.shape[2]))
-encoded = LSTM(128, activation='tanh', return_sequences=True)(inputs)
-encoded = LSTM(64, activation='tanh', return_sequences=True)(encoded)
-encoded = LSTM(32, activation='tanh', return_sequences=True)(encoded)
-encoded = LSTM(16, activation='tanh', return_sequences=False)(encoded)
-
-decoded = RepeatVector(1)(encoded)
-decoded = LSTM(16, activation='tanh', return_sequences=True)(decoded)
-decoded = LSTM(32, activation='tanh', return_sequences=True)(decoded)
-decoded = LSTM(64, activation='tanh', return_sequences=True)(decoded)
-decoded = LSTM(128, activation='tanh', return_sequences=True)(decoded)
-
-output = LSTM(train_data_values.shape[2], activation='tanh', return_sequences=True)(decoded)
-model = Model(inputs=inputs, outputs=output)
-optimizer = Adam(learning_rate=0.0001)
-model.compile(optimizer=optimizer, loss='mse')
-
-# Train and evaluate five times
+# Train and evaluate five times with re-initialization of model
 for i in range(5):
     print(f"Run {i+1}:")
 
+    # Define LSTM Autoencoder model for this run
+    inputs = Input(shape=(1, train_data_values.shape[2]))
+    encoded = LSTM(128, activation='tanh', return_sequences=True)(inputs)
+    encoded = LSTM(64, activation='tanh', return_sequences=True)(encoded)
+    encoded = LSTM(32, activation='tanh', return_sequences=True)(encoded)
+    encoded = LSTM(16, activation='tanh', return_sequences=False)(encoded)
+
+    decoded = RepeatVector(1)(encoded)
+    decoded = LSTM(16, activation='tanh', return_sequences=True)(decoded)
+    decoded = LSTM(32, activation='tanh', return_sequences=True)(decoded)
+    decoded = LSTM(64, activation='tanh', return_sequences=True)(decoded)
+    decoded = LSTM(128, activation='tanh', return_sequences=True)(decoded)
+
+    output = LSTM(train_data_values.shape[2], activation='tanh', return_sequences=True)(decoded)
+    model = Model(inputs=inputs, outputs=output)
+    
+    # Compile the model for this run
+    optimizer = Adam(learning_rate=0.0001)
+    model.compile(optimizer=optimizer, loss='mse')
+    
     # Train the model
     callbacks = [EarlyStopping(monitor='val_loss', patience=5)]
     history = model.fit(train_data_values, train_data_values, epochs=100, batch_size=32, callbacks=callbacks, validation_split=0.1, verbose=0)
