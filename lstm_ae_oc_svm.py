@@ -16,7 +16,7 @@ file_path = path + '/InSDN_DatasetCSV/Normal_data.csv'
 data = pd.read_csv(file_path)
 
 # Pre-process the data by removing socket information
-data = data.drop(columns=['Src IP', 'Src Port', 'Dst IP', 'Dst Port', 'Flow ID', 'Protocol'])
+data = data.drop(columns=['Src IP', 'Src Port', 'Dst IP', 'Dst Port', 'Flow ID'])
 
 #transforms the data in a time series
 #data['Timestamp'] = pd.to_datetime(data['Timestamp'])
@@ -104,7 +104,7 @@ model.compile(optimizer='adam', loss='mse')
 model.summary()
 
 # Trains the model
-epochs = 100
+epochs = 1#00
 learning_rate = 0.0001
 batch = 32
 optimizer = Adam(learning_rate=learning_rate)
