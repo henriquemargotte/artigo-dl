@@ -9,6 +9,7 @@ from keras.optimizers import Adam
 import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, roc_auc_score
 import os
+import kagglehub
 
 # Setup directories for saving results
 os.makedirs('plots', exist_ok=True)
