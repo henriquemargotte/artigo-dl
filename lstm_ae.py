@@ -90,7 +90,6 @@ test_data['Threshold'] = threshold
 test_data['Anomaly'] = test_data['Loss'] > test_data['Threshold']
 test_data['Prediction'] = test_data['Label'] == 1
 
-
 # Display performance metrics
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, confusion_matrix, classification_report, roc_auc_score, roc_curve, precision_recall_curve
 
@@ -115,3 +114,37 @@ plt.plot(recall, precision)
 plt.xlabel('Recall')
 plt.ylabel('Precision')
 plt.show()
+
+# Save the performance metrics to a text file
+with open('performance_metrics.txt', 'w') as f:
+    f.write(f'Accuracy: {accuracy_score(test_data["Label"], test_data["Prediction"])}\n')
+    f.write(f'Recall: {recall_score(test_data["Label"], test_data["Prediction"])}\n')
+    f.write(f'Precision: {precision_score(test_data["Label"], test_data["Prediction"])}\n')
+    f.write(f'F1 Score: {f1_score(test_data["Label"], test_data["Prediction"])}\n')
+    f.write(f'Confusion Matrix:\n{confusion_matrix(test_data["Label"], test_data["Prediction"])}\n')
+    f.write(f'Classification Report:\n{classification_report(test_data["Label"], test_data["Prediction"])}\n')
+    f.write(f'ROC AUC Score: {roc_auc_score(test_data["Label"], test_data["Prediction"])}\n')
+
+# Save the ROC curve plot
+plt.figure()
+plt.plot(fpr, tpr)
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC Curve')
+plt.savefig('roc_curve.png')
+
+# Save the precision-recall curve plot
+plt.figure()
+plt.plot(recall, precision)
+plt.xlabel('Recall')
+plt.ylabel('Precision')
+plt.title('Precision-Recall Curve')
+plt.savefig('precision_recall_curve.png')
+
+# Save the training and validation loss plot
+plt.figure()
+plt.plot(history.history['loss'], label='Training Loss')
+plt.plot(history.history['val_loss'], label='Validation Loss')
+plt.legend()
+plt.title('Training and Validation Loss')
+plt.savefig('training_validation_loss.png')
