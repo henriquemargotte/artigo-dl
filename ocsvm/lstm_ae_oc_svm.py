@@ -5,6 +5,7 @@ from sklearn.model_selection import train_test_split
 from keras.models import Model
 from keras.layers import Input, LSTM, RepeatVector, Dense
 from keras.callbacks import EarlyStopping
+from keras.optimizers import Adam
 from sklearn.svm import OneClassSVM
 from sklearn.metrics import accuracy_score, auc, recall_score, precision_score, f1_score, roc_auc_score, roc_curve
 import matplotlib.pyplot as plt
@@ -71,7 +72,8 @@ for i in range(5):
     
     # Complete autoencoder model
     autoencoder = Model(inputs=inputs, outputs=output)
-    autoencoder.compile(optimizer='adam', loss='mse')
+    optimizer = Adam(learning_rate=0.0001)
+    autoencoder.compile(optimizer=optimizer, loss='mse')
 
     # Train the autoencoder
     callbacks = [EarlyStopping(monitor='val_loss', patience=5)]
@@ -95,9 +97,9 @@ for i in range(5):
     test_compressed = test_compressed.reshape(test_compressed.shape[0], -1)
 
     #normalize the compressed data
-    scaler = StandardScaler()
-    train_compressed = scaler.fit_transform(train_compressed)
-    test_compressed = scaler.transform(test_compressed)
+    #scaler = StandardScaler()
+    #train_compressed = scaler.fit_transform(train_compressed)
+    #test_compressed = scaler.transform(test_compressed)
 
     # Train the One-Class SVM on normal data compressed features
     oc_svm = OneClassSVM(kernel='rbf', gamma=0.001, nu=0.4)
