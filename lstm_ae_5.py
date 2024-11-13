@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from keras.models import Model
-from keras.layers import Input, LSTM, RepeatVector
+from keras.layers import Input, LSTM, RepeatVector, Dense
 from keras.callbacks import EarlyStopping
 from keras.optimizers import Adam
 import matplotlib.pyplot as plt
@@ -47,14 +47,11 @@ test_data = pd.concat([test_data, data_ovs])
 train_data_values = np.expand_dims(train_data.drop(columns=['Label']).values, axis=1)
 test_data_values = np.expand_dims(test_data.drop(columns=['Label']).values, axis=1)
 
-#shuffle the train data
-np.random.shuffle(train_data_values)
-
 # Train and evaluate five times with re-initialization of model
 for i in range(5):
     print(f"Run {i+1}:")
 
-    # Define LSTM Autoencoder model for this run
+    # Define LSTM Autoencoder model for this run with a dense layer at the output
     inputs = Input(shape=(1, train_data_values.shape[2]))
     encoded = LSTM(128, activation='tanh', return_sequences=True)(inputs)
     encoded = LSTM(64, activation='tanh', return_sequences=True)(encoded)
@@ -67,16 +64,17 @@ for i in range(5):
     decoded = LSTM(64, activation='tanh', return_sequences=True)(decoded)
     decoded = LSTM(128, activation='tanh', return_sequences=True)(decoded)
 
-    output = LSTM(train_data_values.shape[2], activation='tanh', return_sequences=True)(decoded)
+    #output = LSTM(train_data_values.shape[2], activation='tanh', return_sequences=True)(decoded)
+    output = Dense(train_data_values.shape[2])(decoded)  # Fully connected layer for final output
     model = Model(inputs=inputs, outputs=output)
     
     # Compile the model for this run
     optimizer = Adam(learning_rate=0.0001)
     model.compile(optimizer=optimizer, loss='mse')
     
-    # Train the model
+    # Train the model with data shuffling
     callbacks = [EarlyStopping(monitor='val_loss', patience=5)]
-    history = model.fit(train_data_values, train_data_values, epochs=100, batch_size=32, callbacks=callbacks, validation_split=0.1, verbose=0)
+    history = model.fit(train_data_values, train_data_values, epochs=100, batch_size=32, callbacks=callbacks, validation_split=0.1, verbose=0, shuffle=True)
 
     # Plot and save training history
     plt.figure()
