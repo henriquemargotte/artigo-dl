@@ -5,9 +5,9 @@ from sklearn.model_selection import train_test_split
 from keras.models import Model
 from keras.layers import Input, LSTM, RepeatVector
 from keras.callbacks import EarlyStopping
-from keras.optimizers import Adam
-import matplotlib.pyplot as plt
+from sklearn.svm import OneClassSVM
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, roc_auc_score
+import matplotlib.pyplot as plt
 import os
 import kagglehub
 
@@ -51,7 +51,7 @@ test_data_values = np.expand_dims(test_data.drop(columns=['Label']).values, axis
 for i in range(5):
     print(f"Run {i+1}:")
 
-    # Define LSTM Autoencoder model for this run
+    # Define encoder-decoder LSTM Autoencoder model for this run
     inputs = Input(shape=(1, train_data_values.shape[2]))
     encoded = LSTM(128, activation='tanh', return_sequences=True)(inputs)
     encoded = LSTM(64, activation='tanh', return_sequences=True)(encoded)
@@ -65,42 +65,49 @@ for i in range(5):
     decoded = LSTM(128, activation='tanh', return_sequences=True)(decoded)
 
     output = LSTM(train_data_values.shape[2], activation='tanh', return_sequences=True)(decoded)
-    model = Model(inputs=inputs, outputs=output)
     
-    # Compile the model for this run
-    optimizer = Adam(learning_rate=0.0001)
-    model.compile(optimizer=optimizer, loss='mse')
+    # Encoder model to extract compressed features
+    encoder = Model(inputs=inputs, outputs=encoded)
     
-    # Train the model
+    # Complete autoencoder model
+    autoencoder = Model(inputs=inputs, outputs=output)
+    autoencoder.compile(optimizer='adam', loss='mse')
+
+    # Train the autoencoder
     callbacks = [EarlyStopping(monitor='val_loss', patience=5)]
-    history = model.fit(train_data_values, train_data_values, epochs=100, batch_size=32, callbacks=callbacks, validation_split=0.1, verbose=0)
+    history = autoencoder.fit(train_data_values, train_data_values, epochs=100, batch_size=32, callbacks=callbacks, validation_split=0.1, verbose=0)
 
     # Plot and save training history
     plt.figure()
     plt.plot(history.history['loss'], label='Training Loss')
     plt.plot(history.history['val_loss'], label='Validation Loss')
     plt.legend()
-    plt.title(f'Training and Validation Loss (Run {i+1})')
-    plt.savefig(f'plots/training_validation_loss_run_{i+1}.png')
+    plt.title(f'Training and Validation Loss AE (Run {i+1})')
+    plt.savefig(f'plots/training_validation_loss_AE_run_{i+1}.png')
     plt.close()
 
-    # Anomaly threshold calculation
-    train_pred = model.predict(train_data_values)
-    train_loss = np.mean(np.abs(train_pred - train_data_values), axis=(1, 2))
-    threshold = np.mean(train_loss) + 3 * np.std(train_loss)
+    # Extract compressed features using the encoder
+    train_compressed = encoder.predict(train_data_values)
+    test_compressed = encoder.predict(test_data_values)
 
-    # Evaluate on test data
-    test_pred = model.predict(test_data_values)
-    test_loss = np.mean(np.abs(test_pred - test_data_values), axis=(1, 2))
-    test_data['Loss'] = test_loss
-    test_data['Prediction'] = test_data['Loss'] > threshold
+    # Reshape compressed data for SVM
+    train_compressed = train_compressed.reshape(train_compressed.shape[0], -1)
+    test_compressed = test_compressed.reshape(test_compressed.shape[0], -1)
 
-    # Calculate metrics and append to results
-    accuracy = accuracy_score(test_data['Label'], test_data['Prediction'])
-    recall = recall_score(test_data['Label'], test_data['Prediction'])
-    precision = precision_score(test_data['Label'], test_data['Prediction'])
-    f1 = f1_score(test_data['Label'], test_data['Prediction'])
-    roc_auc = roc_auc_score(test_data['Label'], test_data['Prediction'])
+    # Train the One-Class SVM on normal data compressed features
+    oc_svm = OneClassSVM(kernel='rbf', gamma=0.001, nu=0.4)
+    oc_svm.fit(train_compressed[train_data['Label'] == 0])
+
+    # Detect anomalies in test data using the SVM model
+    svm_pred = oc_svm.predict(test_compressed)
+    svm_pred = np.where(svm_pred == -1, 1, 0)  # Convert -1 to 1 (anomaly), 1 to 0 (normal)
+
+    # Calculate performance metrics and append to results
+    accuracy = accuracy_score(test_data['Label'], svm_pred)
+    recall = recall_score(test_data['Label'], svm_pred)
+    precision = precision_score(test_data['Label'], svm_pred)
+    f1 = f1_score(test_data['Label'], svm_pred)
+    roc_auc = roc_auc_score(test_data['Label'], svm_pred)
 
     results['accuracy'].append(accuracy)
     results['recall'].append(recall)
