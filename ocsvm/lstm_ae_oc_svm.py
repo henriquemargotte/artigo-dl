@@ -3,10 +3,10 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from keras.models import Model
-from keras.layers import Input, LSTM, RepeatVector
+from keras.layers import Input, LSTM, RepeatVector, Dense
 from keras.callbacks import EarlyStopping
 from sklearn.svm import OneClassSVM
-from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, roc_auc_score
+from sklearn.metrics import accuracy_score, auc, recall_score, precision_score, f1_score, roc_auc_score, roc_curve
 import matplotlib.pyplot as plt
 import os
 import kagglehub
@@ -64,7 +64,7 @@ for i in range(5):
     decoded = LSTM(64, activation='tanh', return_sequences=True)(decoded)
     decoded = LSTM(128, activation='tanh', return_sequences=True)(decoded)
 
-    output = LSTM(train_data_values.shape[2], activation='tanh', return_sequences=True)(decoded)
+    output = Dense(train_data_values.shape[2])(decoded)  # Fully connected layer for final output
     
     # Encoder model to extract compressed features
     encoder = Model(inputs=inputs, outputs=encoded)
@@ -116,6 +116,21 @@ for i in range(5):
     results['roc_auc'].append(roc_auc)
 
     print(f"Run {i+1} Results - Accuracy: {accuracy}, Recall: {recall}, Precision: {precision}, F1 Score: {f1}, ROC AUC: {roc_auc}\n")
+
+    #plot the ROC curve
+    plt.figure()
+    plt.plot([0, 1], [0, 1], 'k--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title(f'ROC Curve (Run {i+1})')
+    fpr, tpr, _ = roc_curve(test_data['Label'], svm_pred)
+    roc_auc = auc(fpr, tpr)
+    plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc)
+    plt.legend(loc="lower right")
+    plt.savefig(f'plots/roc_curve_run_{i+1}.png')
+    plt.close()
 
 # Calculate and plot the mean of each metric across the five runs
 mean_accuracy = np.mean(results['accuracy'])
