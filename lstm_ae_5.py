@@ -74,7 +74,7 @@ for i in range(5):
     
     # Train the model with data shuffling
     callbacks = [EarlyStopping(monitor='val_loss', patience=5)]
-    history = model.fit(train_data_values, train_data_values, epochs=100, batch_size=32, callbacks=callbacks, validation_split=0.1, verbose=0, shuffle=True)
+    history = model.fit(train_data_values, train_data_values, epochs=100, batch_size=32, callbacks=callbacks, validation_split=0.1, verbose=0)#, shuffle=True)
 
     # Plot and save training history
     plt.figure()
