@@ -47,6 +47,9 @@ test_data = pd.concat([test_data, data_ovs])
 train_data_values = np.expand_dims(train_data.drop(columns=['Label']).values, axis=1)
 test_data_values = np.expand_dims(test_data.drop(columns=['Label']).values, axis=1)
 
+#shuffle the train data
+np.random.shuffle(train_data_values)
+
 # Train and evaluate five times with re-initialization of model
 for i in range(5):
     print(f"Run {i+1}:")
