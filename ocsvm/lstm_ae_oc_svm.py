@@ -107,12 +107,12 @@ for i in range(5):
 
     #normalize the compressed data
     #scaler = StandardScaler()
-    #train_compressed = scaler.fit_transform(train_compressed)
-    #test_compressed = scaler.transform(test_compressed)
+    train_compressed = scaler.fit_transform(train_compressed)
+    test_compressed = scaler.transform(test_compressed)
 
     # Train the One-Class SVM on normal data compressed features
     oc_svm = OneClassSVM(kernel='rbf', gamma=0.001, nu=0.4)
-    oc_svm.fit(train_compressed[train_data['Label'] == 0])
+    oc_svm.fit(train_compressed)#[train_data['Label'] == 0])
 
     # Detect anomalies in test data using the SVM model
     svm_pred = oc_svm.predict(test_compressed)

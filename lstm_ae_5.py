@@ -62,19 +62,19 @@ for i in range(5):
 
     # Define LSTM Autoencoder model for this run with a dense layer at the output
     inputs = Input(shape=(1, train_data_values.shape[2]))
-    encoded = LSTM(128, activation='tanh', return_sequences=True)(inputs)
-    encoded = LSTM(64, activation='tanh', return_sequences=True)(encoded)
-    encoded = LSTM(32, activation='tanh', return_sequences=True)(encoded)
-    encoded = LSTM(16, activation='tanh', return_sequences=False)(encoded)
+    encoded = LSTM(128, return_sequences=True)(inputs)
+    encoded = LSTM(64, return_sequences=True)(encoded)
+    encoded = LSTM(32, return_sequences=True)(encoded)
+    encoded = LSTM(16, return_sequences=False)(encoded)
 
     decoded = RepeatVector(1)(encoded)
-    decoded = LSTM(16, activation='tanh', return_sequences=True)(decoded)
-    decoded = LSTM(32, activation='tanh', return_sequences=True)(decoded)
-    decoded = LSTM(64, activation='tanh', return_sequences=True)(decoded)
-    decoded = LSTM(128, activation='tanh', return_sequences=True)(decoded)
+    decoded = LSTM(16, return_sequences=True)(decoded)
+    decoded = LSTM(32, return_sequences=True)(decoded)
+    decoded = LSTM(64, return_sequences=True)(decoded)
+    decoded = LSTM(128, return_sequences=True)(decoded)
 
     #output = LSTM(train_data_values.shape[2], activation='tanh', return_sequences=True)(decoded)
-    output = Dense(train_data_values.shape[2])(decoded)  # Fully connected layer for final output
+    output = Dense(train_data_values.shape[2], activation='tanh')(decoded)  # Fully connected layer for final output
     model = Model(inputs=inputs, outputs=output)
     
     # Compile the model for this run
