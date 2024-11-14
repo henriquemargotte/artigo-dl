@@ -74,7 +74,7 @@ for i in range(5):
     decoded = LSTM(128, return_sequences=True, activation='tanh')(decoded)
 
     #output = LSTM(train_data_values.shape[2], activation='tanh', return_sequences=True)(decoded)
-    output = Dense(train_data_values.shape[2], activation='tanh')(decoded)  # Fully connected layer for final output
+    output = Dense(train_data_values.shape[2])(decoded)  # Fully connected layer for final output
     model = Model(inputs=inputs, outputs=output)
     
     # Compile the model for this run
