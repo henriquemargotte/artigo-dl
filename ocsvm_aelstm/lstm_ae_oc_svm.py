@@ -118,7 +118,7 @@ test_compressed = encoder.predict(test_data_values)
 #test_compressed = scaler.transform(test_compressed)
 
 # Train the One-Class SVM on normal data compressed features
-oc_svm = OneClassSVM(kernel='rbf', gamma=0.001, nu=0.4)
+oc_svm = OneClassSVM(kernel='rbf', gamma=0.01, nu=0.4)
 oc_svm.fit(train_compressed[train_data['Label'] == 0])
 
 # Detect anomalies in test data using the SVM model
