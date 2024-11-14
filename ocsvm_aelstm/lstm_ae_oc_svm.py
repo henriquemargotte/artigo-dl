@@ -58,95 +58,93 @@ train_data_values = np.expand_dims(train_data.drop(columns=['Label']).values, ax
 test_data_values = np.expand_dims(test_data.drop(columns=['Label']).values, axis=1)
 
 # Train and evaluate five times with re-initialization of model
-for i in range(5):
-    print(f"Run {i+1}:")
+print("Run 1:")
 
-    # Define encoder-decoder LSTM Autoencoder model for this run
-    inputs = Input(shape=(1, train_data_values.shape[2]))
-    encoded = LSTM(128, activation='tanh', return_sequences=True)(inputs)
-    encoded = LSTM(64, activation='tanh', return_sequences=True)(encoded)
-    encoded = LSTM(32, activation='tanh', return_sequences=True)(encoded)
-    encoded = LSTM(16, activation='tanh', return_sequences=False)(encoded)
+# Define encoder-decoder LSTM Autoencoder model for this run
+inputs = Input(shape=(1, train_data_values.shape[2]))
+encoded = LSTM(128, activation='tanh', return_sequences=True)(inputs)
+encoded = LSTM(64, activation='tanh', return_sequences=True)(encoded)
+encoded = LSTM(32, activation='tanh', return_sequences=True)(encoded)
+encoded = LSTM(16, activation='tanh', return_sequences=False)(encoded)
 
-    decoded = RepeatVector(1)(encoded)
-    decoded = LSTM(16, activation='tanh', return_sequences=True)(decoded)
-    decoded = LSTM(32, activation='tanh', return_sequences=True)(decoded)
-    decoded = LSTM(64, activation='tanh', return_sequences=True)(decoded)
-    decoded = LSTM(128, activation='tanh', return_sequences=True)(decoded)
+decoded = RepeatVector(1)(encoded)
+decoded = LSTM(16, activation='tanh', return_sequences=True)(decoded)
+decoded = LSTM(32, activation='tanh', return_sequences=True)(decoded)
+decoded = LSTM(64, activation='tanh', return_sequences=True)(decoded)
+decoded = LSTM(128, activation='tanh', return_sequences=True)(decoded)
 
-    output = Dense(train_data_values.shape[2])(decoded)  # Fully connected layer for final output
-    
-    # Encoder model to extract compressed features
-    encoder = Model(inputs=inputs, outputs=encoded)
-    
-    # Complete autoencoder model
-    autoencoder = Model(inputs=inputs, outputs=output)
-    optimizer = Adam(learning_rate=0.0001)
-    autoencoder.compile(optimizer=optimizer, loss='mse')
+output = Dense(train_data_values.shape[2])(decoded)  # Fully connected layer for final output
 
-    # Train the autoencoder
-    callbacks = [EarlyStopping(monitor='val_loss', patience=5)]
-    history = autoencoder.fit(train_data_values, train_data_values, epochs=100, batch_size=32, callbacks=callbacks, validation_split=0.1, verbose=0)
+# Encoder model to extract compressed features
+encoder = Model(inputs=inputs, outputs=encoded)
 
-    # Plot and save training history
-    plt.figure()
-    plt.plot(history.history['loss'], label='Training Loss')
-    plt.plot(history.history['val_loss'], label='Validation Loss')
-    plt.legend()
-    plt.title(f'Training and Validation Loss AE (Run {i+1})')
-    plt.savefig(f'plots/training_validation_loss_AE_run_{i+1}.png')
-    plt.close()
+# Complete autoencoder model
+autoencoder = Model(inputs=inputs, outputs=output)
+optimizer = Adam(learning_rate=0.0001)
+autoencoder.compile(optimizer=optimizer, loss='mse')
 
-    # Extract compressed features using the encoder
-    train_compressed = encoder.predict(train_data_values)
-    test_compressed = encoder.predict(test_data_values)
+# Train the autoencoder
+callbacks = [EarlyStopping(monitor='val_loss', patience=5)]
+history = autoencoder.fit(train_data_values, train_data_values, epochs=100, batch_size=32, callbacks=callbacks, validation_split=0.1, verbose=0)
 
-    # Reshape compressed data for SVM
-    train_compressed = train_compressed.reshape(train_compressed.shape[0], -1)
-    test_compressed = test_compressed.reshape(test_compressed.shape[0], -1)
+# Plot and save training history
+plt.figure()
+plt.plot(history.history['loss'], label='Training Loss')
+plt.plot(history.history['val_loss'], label='Validation Loss')
+plt.legend()
+plt.title('Training and Validation Loss AE (Run 1)')
+plt.savefig('plots/training_validation_loss_AE_run_1.png')
+plt.close()
 
-    #normalize the compressed data
-    #scaler = StandardScaler()
-    train_compressed = scaler.fit_transform(train_compressed)
-    test_compressed = scaler.transform(test_compressed)
+# Extract compressed features using the encoder
+train_compressed = encoder.predict(train_data_values)
+test_compressed = encoder.predict(test_data_values)
 
-    # Train the One-Class SVM on normal data compressed features
-    oc_svm = OneClassSVM(kernel='rbf', gamma=0.001, nu=0.4)
-    oc_svm.fit(train_compressed)#[train_data['Label'] == 0])
+# Reshape compressed data for SVM
+#train_compressed = train_compressed.reshape(train_compressed.shape[0], -1)
+#test_compressed = test_compressed.reshape(test_compressed.shape[0], -1)
 
-    # Detect anomalies in test data using the SVM model
-    svm_pred = oc_svm.predict(test_compressed)
-    svm_pred = np.where(svm_pred == -1, 1, 0)  # Convert -1 to 1 (anomaly), 1 to 0 (normal)
+# Normalize the compressed data
+#train_compressed = scaler.fit_transform(train_compressed)
+#test_compressed = scaler.transform(test_compressed)
 
-    # Calculate performance metrics and append to results
-    accuracy = accuracy_score(test_data['Label'], svm_pred)
-    recall = recall_score(test_data['Label'], svm_pred)
-    precision = precision_score(test_data['Label'], svm_pred)
-    f1 = f1_score(test_data['Label'], svm_pred)
-    roc_auc = roc_auc_score(test_data['Label'], svm_pred)
+# Train the One-Class SVM on normal data compressed features
+oc_svm = OneClassSVM(kernel='rbf', gamma=0.001, nu=0.4)
+oc_svm.fit(train_compressed)
 
-    results['accuracy'].append(accuracy)
-    results['recall'].append(recall)
-    results['precision'].append(precision)
-    results['f1_score'].append(f1)
-    results['roc_auc'].append(roc_auc)
+# Detect anomalies in test data using the SVM model
+svm_pred = oc_svm.predict(test_compressed)
+svm_pred = np.where(svm_pred == -1, 1, 0)  # Convert -1 to 1 (anomaly), 1 to 0 (normal)
 
-    print(f"Run {i+1} Results - Accuracy: {accuracy}, Recall: {recall}, Precision: {precision}, F1 Score: {f1}, ROC AUC: {roc_auc}\n")
+# Calculate performance metrics and append to results
+accuracy = accuracy_score(test_data['Label'], svm_pred)
+recall = recall_score(test_data['Label'], svm_pred)
+precision = precision_score(test_data['Label'], svm_pred)
+f1 = f1_score(test_data['Label'], svm_pred)
+roc_auc = roc_auc_score(test_data['Label'], svm_pred)
 
-    #plot the ROC curve
-    plt.figure()
-    plt.plot([0, 1], [0, 1], 'k--')
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title(f'ROC Curve (Run {i+1})')
-    fpr, tpr, _ = roc_curve(test_data['Label'], svm_pred)
-    roc_auc = auc(fpr, tpr)
-    plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc)
-    plt.legend(loc="lower right")
-    plt.savefig(f'plots/roc_curve_run_{i+1}.png')
-    plt.close()
+results['accuracy'].append(accuracy)
+results['recall'].append(recall)
+results['precision'].append(precision)
+results['f1_score'].append(f1)
+results['roc_auc'].append(roc_auc)
+
+print(f"Run 1 Results - Accuracy: {accuracy}, Recall: {recall}, Precision: {precision}, F1 Score: {f1}, ROC AUC: {roc_auc}\n")
+
+# Plot the ROC curve
+plt.figure()
+plt.plot([0, 1], [0, 1], 'k--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('ROC Curve (Run 1)')
+fpr, tpr, _ = roc_curve(test_data['Label'], svm_pred)
+roc_auc = auc(fpr, tpr)
+plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc)
+plt.legend(loc="lower right")
+plt.savefig('plots/roc_curve_run_1.png')
+plt.close()
 
 # Calculate and plot the mean of each metric across the five runs
 mean_accuracy = np.mean(results['accuracy'])
