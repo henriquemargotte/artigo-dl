@@ -57,7 +57,7 @@ test_data_values = np.expand_dims(test_data.drop(columns=['Label']).values, axis
 
 
 # Train and evaluate five times with re-initialization of model
-for i in range(1):
+for i in range(5):
     print(f"Run {i+1}:")
 
     # Define LSTM Autoencoder model for this run with a dense layer at the output
