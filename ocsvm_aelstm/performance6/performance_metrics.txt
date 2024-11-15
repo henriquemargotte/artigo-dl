@@ -1,0 +1,13 @@
+Run 1:
+  Accuracy: 0.8010264910291082
+  Recall: 1.0
+  Precision: 0.8010264910291082
+  F1 Score: 0.8895221641869364
+  ROC AUC: 0.5
+
+Final Averaged Metrics:
+  Mean Accuracy: 0.8010264910291082
+  Mean Recall: 1.0
+  Mean Precision: 0.8010264910291082
+  Mean F1 Score: 0.8895221641869364
+  Mean ROC AUC: 0.5
