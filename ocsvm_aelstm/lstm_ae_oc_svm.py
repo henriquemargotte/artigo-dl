@@ -47,7 +47,7 @@ data_ovs[data_ovs.columns[:-1]] = scaler.transform(data_ovs[data_ovs.columns[:-1
 
 data_meta = data_meta.drop(columns=['Src IP', 'Src Port', 'Dst IP', 'Dst Port', 'Flow ID', 'Timestamp'])
 #data_meta = data_meta.set_index('Timestamp')
-data_meta[data_meta.columns[:-1]] = scaler.transform(data_meta[data_meta.columns[:-1])
+data_meta[data_meta.columns[:-1]] = scaler.transform(data_meta[data_meta.columns[:-1]])
 
 data['Label'] = data['Label'].apply(lambda x: 0 if x == 'Normal' else 1)
 data_ovs['Label'] = data_ovs['Label'].apply(lambda x: 0 if x == 'Normal' else 1)
