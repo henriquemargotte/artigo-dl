@@ -111,7 +111,7 @@ for run in range(5):
     test_compressed = encoder.predict(test_data_values)
 
     # Train the One-Class SVM on normal data compressed features
-    oc_svm = OneClassSVM(kernel='rbf', gamma=0.001, nu=0.4)
+    oc_svm = OneClassSVM(kernel='rbf', gamma=0.001, nu=0.4, random_state=run)
     oc_svm.fit(train_compressed[train_data['Label'] == 0])
 
     # Detect anomalies in test data using the SVM model
