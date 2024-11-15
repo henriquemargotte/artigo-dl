@@ -35,11 +35,26 @@ file_path = path + '/InSDN_DatasetCSV/OVS.csv'
 data_ovs = pd.read_csv(file_path)
 file_path = path + '/InSDN_DatasetCSV/metasploitable-2.csv'
 data_meta = pd.read_csv(file_path)
-data = pd.concat([data, data_ovs, data_meta])
-data = data.drop(columns=['Src IP', 'Src Port', 'Dst IP', 'Dst Port', 'Flow ID'])
-data = data.set_index('Timestamp')
+#data = pd.concat([data, data_ovs, data_meta])
+data = data.drop(columns=['Src IP', 'Src Port', 'Dst IP', 'Dst Port', 'Flow ID', 'Timestamp'])
+#data = data.set_index('Timestamp')
 scaler = MinMaxScaler(feature_range=(-1, 1))
 data[data.columns[:-1]] = scaler.fit_transform(data[data.columns[:-1]])
+
+data_ovs = data_ovs.drop(columns=['Src IP', 'Src Port', 'Dst IP', 'Dst Port', 'Flow ID', 'Timestamp'])
+#data_ovs = data_ovs.set_index('Timestamp')
+data_ovs[data_ovs.columns[:-1]] = scaler.transform(data_ovs[data_ovs.columns[:-1]])
+
+data_meta = data_meta.drop(columns=['Src IP', 'Src Port', 'Dst IP', 'Dst Port', 'Flow ID', 'Timestamp'])
+#data_meta = data_meta.set_index('Timestamp')
+data_meta[data_meta.columns[:-1]] = scaler.transform(data_meta[data_meta.columns[:-1])
+
+data['Label'] = data['Label'].apply(lambda x: 0 if x == 'Normal' else 1)
+data_ovs['Label'] = data_ovs['Label'].apply(lambda x: 0 if x == 'Normal' else 1)
+data_meta['Label'] = data_meta['Label'].apply(lambda x: 0 if x == 'Normal' else 1)
+
+train_data, test_data = train_test_split(data, test_size=0.2, random_state=42)
+test_data = pd.concat([test_data, data_ovs, data_meta])
 
 # Use MinMaxScaler to scale values between -1 and 1
 # scaler = MinMaxScaler(feature_range=(-1, 1))
@@ -57,9 +72,9 @@ data[data.columns[:-1]] = scaler.fit_transform(data[data.columns[:-1]])
 # data_ovs['Label'] = data_ovs['Label'].apply(lambda x: 0 if x == 'Normal' else 1)
 
 # Split data into training and testing sets
-train_data, test_data = train_test_split(data, test_size=0.2, random_state=42, stratify=data['Label'])
-train_data['Label'] = train_data['Label'].apply(lambda x: 0 if x == 'Normal' else 1)
-test_data['Label'] = test_data['Label'].apply(lambda x: 0 if x == 'Normal' else 1)
+#train_data, test_data = train_test_split(data, test_size=0.2, random_state=42, stratify=data['Label'])
+#train_data['Label'] = train_data['Label'].apply(lambda x: 0 if x == 'Normal' else 1)
+#test_data['Label'] = test_data['Label'].apply(lambda x: 0 if x == 'Normal' else 1)
 #test_data = pd.concat([test_data, data_ovs])
 
 # Reshape data for LSTM input
