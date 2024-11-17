@@ -1,3 +1,4 @@
+import random
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
@@ -19,6 +20,7 @@ from sklearn.manifold import TSNE
 import seaborn as sns
 
 from sklearn.metrics import confusion_matrix
+import tensorflow as tf
 
 def plot_and_compare(dataX, dataY, predy, title, save_as_pdf=False):
     fig, axes = plt.subplots(1, 3, figsize=(15, 5))
@@ -76,137 +78,128 @@ from sklearn.preprocessing import MinMaxScaler
 path = kagglehub.dataset_download("badcodebuilder/insdn-dataset")
 file_path = path + '/InSDN_DatasetCSV/Normal_data.csv'
 data = pd.read_csv(file_path)
-data = data.drop(columns=['Src IP', 'Src Port', 'Dst IP', 'Dst Port', 'Flow ID'])
-data = data.set_index('Timestamp')
-
-# Use MinMaxScaler to scale values between -1 and 1
-scaler = MinMaxScaler(feature_range=(-1, 1))
-data[data.columns[:-1]] = scaler.fit_transform(data[data.columns[:-1]])
-data['Label'] = data['Label'].apply(lambda x: 0 if x == 'Normal' else 1)
-
 file_path = path + '/InSDN_DatasetCSV/OVS.csv'
 data_ovs = pd.read_csv(file_path)
-data_ovs = data_ovs.drop(columns=['Src IP', 'Src Port', 'Dst IP', 'Dst Port', 'Flow ID'])
-data_ovs = data_ovs.set_index('Timestamp')
+file_path = path + '/InSDN_DatasetCSV/metasploitable-2.csv'
+data_meta = pd.read_csv(file_path)
+data = data.drop(columns=['Src IP', 'Src Port', 'Dst IP', 'Dst Port', 'Flow ID', 'Timestamp'])
+scaler = MinMaxScaler(feature_range=(-1, 1))
+data[data.columns[:-1]] = scaler.fit_transform(data[data.columns[:-1]])
 
-# Scale OVS data with the same scaler
+data_ovs = data_ovs.drop(columns=['Src IP', 'Src Port', 'Dst IP', 'Dst Port', 'Flow ID', 'Timestamp'])
 data_ovs[data_ovs.columns[:-1]] = scaler.transform(data_ovs[data_ovs.columns[:-1]])
-data_ovs = data_ovs.sample(frac=0.1, random_state=42)
+
+data_meta = data_meta.drop(columns=['Src IP', 'Src Port', 'Dst IP', 'Dst Port', 'Flow ID', 'Timestamp'])
+data_meta[data_meta.columns[:-1]] = scaler.transform(data_meta[data_meta.columns[:-1]])
+
+data['Label'] = data['Label'].apply(lambda x: 0 if x == 'Normal' else 1)
 data_ovs['Label'] = data_ovs['Label'].apply(lambda x: 0 if x == 'Normal' else 1)
+data_meta['Label'] = data_meta['Label'].apply(lambda x: 0 if x == 'Normal' else 1)
 
-# Split data into training and testing sets
-train_data, test_data = train_test_split(data, test_size=0.2, random_state=42, stratify=data['Label'])
-test_data = pd.concat([test_data, data_ovs])
+data = pd.concat([data, data_ovs, data_meta])
 
-# Reshape data for LSTM input
-train_data_values = np.expand_dims(train_data.drop(columns=['Label']).values, axis=1)
-test_data_values = np.expand_dims(test_data.drop(columns=['Label']).values, axis=1)
+# Set base seed
+base_seed = 42
 
-# Train and evaluate five times with re-initialization of model
-print("Run 1:")
+for run in range(5):
+    print(f"Run {run}:")
 
-# Define encoder-decoder LSTM Autoencoder model for this run
-inputs = Input(shape=(1, train_data_values.shape[2]))
-encoded = LSTM(128, activation='linear', return_sequences=True)(inputs)
-encoded = LSTM(64, activation='linear', return_sequences=True)(encoded)
-encoded = LSTM(32, activation='linear', return_sequences=True)(encoded)
-encoded = LSTM(16, activation='linear', return_sequences=False)(encoded)
+    # Set the seed for reproducibility
+    np.random.seed(base_seed + run)
+    tf.random.set_seed(base_seed + run)
+    random.seed(base_seed + run)
 
-decoded = RepeatVector(1)(encoded)
-decoded = LSTM(16, activation='linear', return_sequences=True)(decoded)
-decoded = LSTM(32, activation='linear', return_sequences=True)(decoded)
-decoded = LSTM(64, activation='linear', return_sequences=True)(decoded)
-decoded = LSTM(128, activation='linear', return_sequences=True)(decoded)
+    train_data, test_data = train_test_split(data, test_size=0.2, random_state=base_seed + run, stratify=data['Label'])
 
-output = Dense(train_data_values.shape[2], activation='tanh')(decoded)
+    # Reshape data for LSTM input
+    train_data_values = np.expand_dims(train_data.drop(columns=['Label']).values, axis=1)
+    test_data_values = np.expand_dims(test_data.drop(columns=['Label']).values, axis=1)
 
-# Encoder model to extract compressed features
-encoder = Model(inputs=inputs, outputs=encoded)
+    # Define encoder-decoder LSTM Autoencoder model for this run
+    inputs = Input(shape=(1, train_data_values.shape[2]))
+    encoded = LSTM(128, activation='linear', return_sequences=True)(inputs)
+    encoded = LSTM(64, activation='linear', return_sequences=True)(encoded)
+    encoded = LSTM(32, activation='linear', return_sequences=True)(encoded)
+    encoded = LSTM(16, activation='linear', return_sequences=False)(encoded)
 
-# Complete autoencoder model
-autoencoder = Model(inputs=inputs, outputs=output)
-optimizer = Adam(learning_rate=0.0001)
-# optimizer = Adam(learning_rate=0.01)
-# Use l2 loss for reconstruction
-autoencoder.compile(optimizer=optimizer, loss='mae')
-# autoencoder.compile(optimizer=optimizer, loss='mse')
+    decoded = RepeatVector(1)(encoded)
+    decoded = LSTM(16, activation='linear', return_sequences=True)(decoded)
+    decoded = LSTM(32, activation='linear', return_sequences=True)(decoded)
+    decoded = LSTM(64, activation='linear', return_sequences=True)(decoded)
+    decoded = LSTM(128, activation='linear', return_sequences=True)(decoded)
 
-# print(train_data_values.shape)
-# print(train_data_values[:2])
-# exit()
+    output = Dense(train_data_values.shape[2], activation='tanh')(decoded)
 
-# Train the autoencoder
-callbacks = [EarlyStopping(monitor='val_loss', patience=5)]
-history = autoencoder.fit(
-    train_data_values,
-    train_data_values,
-    epochs=100,
-    # epochs=10,
-    batch_size=32,
-    callbacks=callbacks,
-    validation_split=0.1, verbose=0)
+    # Encoder model to extract compressed features
+    encoder = Model(inputs=inputs, outputs=encoded)
 
-# Plot and save training history
-plt.figure()
-plt.plot(history.history['loss'], label='Training Loss')
-plt.plot(history.history['val_loss'], label='Validation Loss')
-plt.legend()
-plt.title('Training and Validation Loss AE (Run 1)')
-plt.savefig('plots/training_validation_loss_AE_run_1.png')
-plt.close()
+    # Complete autoencoder model
+    autoencoder = Model(inputs=inputs, outputs=output)
+    optimizer = Adam(learning_rate=0.0001)
+    autoencoder.compile(optimizer=optimizer, loss='mae')
 
-# Extract compressed features using the encoder
-train_compressed = encoder.predict(train_data_values)
-test_compressed = encoder.predict(test_data_values)
+    # Train the autoencoder
+    callbacks = [EarlyStopping(monitor='val_loss', patience=5)]
+    history = autoencoder.fit(
+        train_data_values,
+        train_data_values,
+        epochs=100,
+        batch_size=32,
+        callbacks=callbacks,
+        validation_split=0.1, verbose=0)
 
-# Reshape compressed data for SVM
-#train_compressed = train_compressed.reshape(train_compressed.shape[0], -1)
-#test_compressed = test_compressed.reshape(test_compressed.shape[0], -1)
+    # Plot and save training history
+    plt.figure()
+    plt.plot(history.history['loss'], label='Training Loss')
+    plt.plot(history.history['val_loss'], label='Validation Loss')
+    plt.legend()
+    plt.title(f'Training and Validation Loss AE (Run {run})')
+    plt.savefig(f'plots/training_validation_loss_AE_run_{run}.png')
+    plt.close()
 
-# Normalize the compressed data
-#train_compressed = scaler.fit_transform(train_compressed)
-#test_compressed = scaler.transform(test_compressed)
+    # Extract compressed features using the encoder
+    train_compressed = encoder.predict(train_data_values)
+    test_compressed = encoder.predict(test_data_values)
 
-# Train the One-Class SVM on normal data compressed features
-oc_svm = OneClassSVM(kernel='rbf', gamma=0.001, nu=0.4)
-oc_svm.fit(train_compressed)
+    # Train the One-Class SVM on normal data compressed features
+    oc_svm = OneClassSVM(kernel='rbf', gamma=0.001, nu=0.4)
+    oc_svm.fit(train_compressed[train_data['Label'] == 0])
 
-# Detect anomalies in test data using the SVM model
-svm_pred = oc_svm.predict(test_compressed)
-print(svm_pred)
-svm_pred = np.where(svm_pred == -1, 0, 1)  # Convert -1 to 1 (anomaly), 1 to 0 (normal)
+    # Detect anomalies in test data using the SVM model
+    svm_pred = oc_svm.predict(test_compressed)
+    svm_pred = np.where(svm_pred == -1, 1, 0)  # Convert -1 to 1 (anomaly), 1 to 0 (normal)
 
-plot_and_compare(test_compressed, test_data['Label'].to_numpy(), svm_pred, 'One-Class SVM', save_as_pdf=True)
+    plot_and_compare(test_compressed, test_data['Label'].to_numpy(), svm_pred, f'One-Class SVM Run {run}', save_as_pdf=True)
 
-# Calculate performance metrics and append to results
-accuracy = accuracy_score(test_data['Label'], svm_pred)
-recall = recall_score(test_data['Label'], svm_pred)
-precision = precision_score(test_data['Label'], svm_pred)
-f1 = f1_score(test_data['Label'], svm_pred)
-roc_auc = roc_auc_score(test_data['Label'], svm_pred)
+    # Calculate performance metrics and append to results
+    accuracy = accuracy_score(test_data['Label'], svm_pred)
+    recall = recall_score(test_data['Label'], svm_pred)
+    precision = precision_score(test_data['Label'], svm_pred)
+    f1 = f1_score(test_data['Label'], svm_pred)
+    roc_auc = roc_auc_score(test_data['Label'], svm_pred)
 
-results['accuracy'].append(accuracy)
-results['recall'].append(recall)
-results['precision'].append(precision)
-results['f1_score'].append(f1)
-results['roc_auc'].append(roc_auc)
+    results['accuracy'].append(accuracy)
+    results['recall'].append(recall)
+    results['precision'].append(precision)
+    results['f1_score'].append(f1)
+    results['roc_auc'].append(roc_auc)
 
-print(f"Run 1 Results - Accuracy: {accuracy}, Recall: {recall}, Precision: {precision}, F1 Score: {f1}, ROC AUC: {roc_auc}\n")
+    print(f"Run {run} Results - Accuracy: {accuracy}, Recall: {recall}, Precision: {precision}, F1 Score: {f1}, ROC AUC: {roc_auc}\n")
 
-# Plot the ROC curve
-plt.figure()
-plt.plot([0, 1], [0, 1], 'k--')
-plt.xlim([0.0, 1.0])
-plt.ylim([0.0, 1.05])
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.title('ROC Curve (Run 1)')
-fpr, tpr, _ = roc_curve(test_data['Label'], svm_pred)
-roc_auc = auc(fpr, tpr)
-plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc)
-plt.legend(loc="lower right")
-plt.savefig('plots/roc_curve_run_1.png')
-plt.close()
+    # Plot the ROC curve
+    plt.figure()
+    plt.plot([0, 1], [0, 1], 'k--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title(f'ROC Curve (Run {run})')
+    fpr, tpr, _ = roc_curve(test_data['Label'], svm_pred)
+    roc_auc = auc(fpr, tpr)
+    plt.plot(fpr, tpr, label='ROC curve (area = %0.2f)' % roc_auc)
+    plt.legend(loc="lower right")
+    plt.savefig(f'plots/roc_curve_run_{run}.png')
+    plt.close()
 
 # Calculate and plot the mean of each metric across the five runs
 mean_accuracy = np.mean(results['accuracy'])

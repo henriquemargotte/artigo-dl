@@ -53,8 +53,11 @@ data['Label'] = data['Label'].apply(lambda x: 0 if x == 'Normal' else 1)
 data_ovs['Label'] = data_ovs['Label'].apply(lambda x: 0 if x == 'Normal' else 1)
 data_meta['Label'] = data_meta['Label'].apply(lambda x: 0 if x == 'Normal' else 1)
 
-train_data, test_data = train_test_split(data, test_size=0.2, random_state=42)
-test_data = pd.concat([test_data, data_ovs, data_meta])
+data = pd.concat([data, data_ovs, data_meta])
+train_data, test_data = train_test_split(data, test_size=0.2, random_state=42, stratify=data['Label'])
+
+#train_data, test_data = train_test_split(data, test_size=0.2, random_state=42)
+#test_data = pd.concat([test_data, data_ovs, data_meta])
 
 # Use MinMaxScaler to scale values between -1 and 1
 # scaler = MinMaxScaler(feature_range=(-1, 1))
