@@ -1,0 +1,41 @@
+Run 1:
+  Accuracy: 0.622052929920208
+  Recall: 1.0
+  Precision: 0.622052929920208
+  F1 Score: 0.7669946133641989
+  ROC AUC: 0.5
+
+Run 2:
+  Accuracy: 0.622052929920208
+  Recall: 1.0
+  Precision: 0.622052929920208
+  F1 Score: 0.7669946133641989
+  ROC AUC: 0.5
+
+Run 3:
+  Accuracy: 0.622052929920208
+  Recall: 1.0
+  Precision: 0.622052929920208
+  F1 Score: 0.7669946133641989
+  ROC AUC: 0.5
+
+Run 4:
+  Accuracy: 0.622052929920208
+  Recall: 1.0
+  Precision: 0.622052929920208
+  F1 Score: 0.7669946133641989
+  ROC AUC: 0.5
+
+Run 5:
+  Accuracy: 0.622052929920208
+  Recall: 1.0
+  Precision: 0.622052929920208
+  F1 Score: 0.7669946133641989
+  ROC AUC: 0.5
+
+Final Averaged Metrics:
+  Mean Accuracy: 0.622052929920208
+  Mean Recall: 1.0
+  Mean Precision: 0.622052929920208
+  Mean F1 Score: 0.7669946133641989
+  Mean ROC AUC: 0.5
