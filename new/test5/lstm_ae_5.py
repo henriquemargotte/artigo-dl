@@ -97,6 +97,7 @@ data_meta[data_meta.columns[:-1]] = scaler.transform(data_meta[data_meta.columns
 #data_meta['Label'] = data_meta['Label'].apply(lambda x: 0 if x == 'Normal' else 1)
 
 data = pd.concat([data, data_ovs, data_meta])
+data.reset_index(drop=True, inplace=True)
 
 # Set base seed
 base_seed = 42
@@ -116,7 +117,7 @@ for run in range(5):
         'Probe': (12586, 2639),
         'DoS': (21622, 13778),
         'DDoS': (9440, 503),
-        'BFA': (1007, 288),
+        'BFA': (1117, 288),
         'BOTNET': (164, 0),
         'Web-Attack': (174, 18),
         'U2R': (14, 3)

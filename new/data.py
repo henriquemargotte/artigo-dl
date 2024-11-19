@@ -39,6 +39,9 @@ data_meta = data_meta.drop(columns=['Src IP', 'Src Port', 'Dst IP', 'Dst Port', 
 data_meta[data_meta.columns[:-1]] = scaler.transform(data_meta[data_meta.columns[:-1]])
 
 data = pd.concat([data, data_ovs, data_meta])
+data.reset_index(drop=True, inplace=True)
+
+#data.drop_duplicates(inplace=True)
 
 # Set base seed
 base_seed = 42
@@ -56,12 +59,23 @@ for run in range(1):
 
     #train_data, test_data = train_test_split(data, test_size=0.2, random_state=base_seed + run, stratify=data['Label'])
     # Define the desired number of samples for each label in training and test sets
+    #label_counts = {
+    #    'Normal': (57956, 6026),
+    #    'Probe': (12586, 2639),
+    #    'DoS': (21622, 13778),
+    #    'DDoS': (1495, 0),
+    #    'DDoS ': (0, 94),
+    #    'BFA': (1117, 260),
+    #    'BOTNET': (164, 0),
+    #    'Web-Attack': (174, 9),
+    #    'U2R': (14, 3)
+    #}
     label_counts = {
         'Normal': (57956, 10468),
         'Probe': (12586, 2639),
         'DoS': (21622, 13778),
         'DDoS': (9440, 503),
-        'BFA': (1007, 288),
+        'BFA': (1117, 288),
         'BOTNET': (164, 0),
         'Web-Attack': (174, 18),
         'U2R': (14, 3)
@@ -72,6 +86,7 @@ for run in range(1):
     test_data = pd.DataFrame()
 
     for label, (train_count, test_count) in label_counts.items():
+        print(f"{label}: Train {train_count}, Test {test_count}")
         label_data = data[data['Label'] == label]
         train_label_data = label_data.sample(n=train_count, random_state=base_seed + run)
         test_label_data = label_data.drop(train_label_data.index).sample(n=test_count, random_state=base_seed + run)
